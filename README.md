@@ -11,8 +11,7 @@ How To Use:
 
 Comments:
 -------------------
-I cannot seem to get the lines to be different colors.
-You can check "Append Log File" to not lose past log files.
+You can check "Append Log File" to not overwrite past log files.
 Table format is for viewing all types of data being tracked in a single table.
 Column format is to view each type of data separately.
 You can increase or decrease the number of max points per type of data to track (too much can get slow).
