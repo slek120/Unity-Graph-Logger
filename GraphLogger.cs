@@ -188,8 +188,8 @@ public class GraphLogger : MonoBehaviour
 		int i = 0;
 		foreach (KeyValuePair<string,Line> element in lines) {
 			Line line = element.Value;
-			float prevX = offset.x * xScale;
-			float prevY = offset.y * yScale;
+			float prevX = (line.points [0].x * xSize + offset.x) * xScale;
+			float prevY = ((line.points [0].y - line.minPoint) * line.ySize + offset.y) * yScale;
 			GL.Color (colors [i % 6]);
 			foreach (Vector2 point in line.points) {
 				// Stretch points so that min is at offset and max is at offset+size
