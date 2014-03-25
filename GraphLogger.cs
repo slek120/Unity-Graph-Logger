@@ -106,12 +106,24 @@ public class GraphLogger : MonoBehaviour
 	// Save then quit
 	void OnApplicationQuit ()
 	{
-		DestroyImmediate (mat);
 		Application.CancelQuit ();
+		DestroyImmediate (mat);
 		SaveLog ();
 		Application.Quit ();
 	}
-	
+
+	void OnApplicationPause (bool paused)
+	{
+		if (paused)
+			SaveLog ();
+	}
+
+	void OnApplicationFocus (bool paused)
+	{
+		if (paused)
+			SaveLog ();
+	}
+
 	public void SaveLog ()
 	{
 		try {
