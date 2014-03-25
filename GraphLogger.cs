@@ -52,7 +52,15 @@ public class GraphLogger : MonoBehaviour
 		graphLogger = this;
 		xScale = 1 / (float)Screen.width;
 		yScale = 1 / (float)Screen.height;
-		mat = new Material (Shader.Find ("Diffuse"));
+		mat = new Material ("Shader \"Lines/Colored Blended\" {" +
+			"SubShader { Pass { " +
+			"    Blend SrcAlpha OneMinusSrcAlpha " +
+			"    ZWrite Off Cull Off Fog { Mode Off } " +
+			"    BindChannels {" +
+			"      Bind \"vertex\", vertex Bind \"color\", color }" +
+			"} } }");
+		mat.hideFlags = HideFlags.HideAndDontSave;
+		mat.shader.hideFlags = HideFlags.HideAndDontSave;
 	}
 
 	public void AddPoint (float point)
@@ -98,6 +106,7 @@ public class GraphLogger : MonoBehaviour
 	// Save then quit
 	void OnApplicationQuit ()
 	{
+		DestroyImmediate (mat);
 		Application.CancelQuit ();
 		SaveLog ();
 		Application.Quit ();
