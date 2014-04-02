@@ -2,35 +2,116 @@ using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 
 public class GraphLogger : MonoBehaviour
 {
 	// A List to track a property with min and max properties
 	class Line
 	{
+		public bool isNumber;							// Tracked parameter is number or string
 		public SortedDictionary<int, string> strings;	// Strings with frame number for key
 		public SortedDictionary<int, float> points;		// Numbers with frame number for key
-		public bool isNumber;							// Tracked parameter is number or string
-		public float minPoint;							// Smallest number in points
-		public float maxPoint;							// Largest number in points
-		public float ySize;								// Scale factor for y-axis
+		int    minTime;									// Smalled frame number
+		int    maxTime;									// Largest frame number
+		float  minPoint;								// Smallest number in points
+		float  maxPoint;								// Largest number in points
+		float  xSize;									// Scale factor for x-axis
+		float  ySize;									// Scale factor for y-axis
+		List<int> keys = new List<int> ();				// List of the keys
 
-		public Line (int t, float x, float y)			// Constructor for number tracker
+		public Line (int t, float x)					// Constructor for number tracker
 		{
 			isNumber = true;
 			minPoint = x;
 			maxPoint = x;
-			ySize = y;
+			minTime = t;
+			maxTime = t;
+			xSize = graphLogger.size.x;
+			ySize = graphLogger.size.y;
 			points = new SortedDictionary<int, float> ();
-			points.Add (t, x);
+			AddFloat (t, x);
 		}
 
 		public Line (int t, string s)					// Constructor for string tracker
 		{
 			isNumber = false;
 			strings = new SortedDictionary<int, string> ();
+			AddString (t, s);
+		}
+
+		public void AddFloat (int t, float x)
+		{
+			if (points.ContainsKey (t))
+				points.Remove (t);
+			else
+				keys.Add (t);
+			points.Add (t, x);
+
+			// Limit capacity
+			if (keys.Count > graphLogger.maxCount) {
+				// Update min and max
+				minTime = keys [keys.Count - graphLogger.maxCount];
+
+				float old = points [keys [keys.Count - graphLogger.maxCount]];
+				if (minPoint == old) {
+					minPoint = maxPoint;
+					for (int i = keys.Count - graphLogger.maxCount + 1; i < keys.Count; i++) {
+						if (points [keys [i]] < minPoint) {
+							minPoint = points [keys [i]];
+						}
+					}
+					if (minPoint != maxPoint) {
+						ySize = graphLogger.size.y / (maxPoint - minPoint);
+					}
+				} else if (maxPoint == old) {
+					maxPoint = minPoint;
+					for (int i = keys.Count - graphLogger.maxCount + 1; i < keys.Count; i++) {
+						if (points [keys [i]] > maxPoint)
+							maxPoint = points [keys [i]];
+					}
+					if (minPoint != maxPoint) {
+						ySize = graphLogger.size.y / (maxPoint - minPoint);
+					}
+				}
+			}
+
+			// Update min, max, and size
+			maxTime = t;
+			if (maxTime != minTime)
+				xSize = graphLogger.size.x / (maxTime - minTime);
+			if (x < minPoint) {
+				minPoint = x;
+				if (minPoint != maxPoint)
+					ySize = graphLogger.size.y / (maxPoint - minPoint);
+			} else if (x > maxPoint) {
+				maxPoint = x;
+				if (minPoint != maxPoint)
+					ySize = graphLogger.size.y / (maxPoint - minPoint);
+			}
+		}
+
+		public void AddString (int t, string s)
+		{
 			strings.Add (t, s);
+			keys.Add (t);
+		}
+
+		public float GetX (int i)
+		{
+			// Stretch points so that min is at offset and max is at offset+size
+			// Then convert to viewport space
+			if (keys.Count > graphLogger.maxCount)
+				i += keys.Count - graphLogger.maxCount;
+			return ((keys [i] - minTime) * xSize + graphLogger.offset.x) * graphLogger.xScale;
+		}
+
+		public float GetY (int i)
+		{
+			// Stretch points so that min is at offset and max is at offset+size
+			// Then convert to viewport space
+			if (keys.Count > graphLogger.maxCount)
+				i += keys.Count - graphLogger.maxCount;
+			return ((points [keys [i]] - minPoint) * ySize + graphLogger.offset.y) * graphLogger.yScale;
 		}
 	}
 	
@@ -49,12 +130,12 @@ public class GraphLogger : MonoBehaviour
 	public int maxCount = 6000;						// Number of points logged per property
 	public bool graphOn = true;						// Display a graph on screen
 	public Color[] colors = new Color[6] {			// Colors of lines for graph
-		Color.blue,
 		Color.cyan,
 		Color.green,
 		Color.magenta,
 		Color.red,
-		Color.yellow
+		Color.yellow,
+		Color.blue,
 	};
 	public Vector2 size = new Vector2 (300, 150);	// Area of graph (px)
 	public Vector2 offset = new Vector2 (10, 10);	// Distance from bottom left corner (px)
@@ -65,7 +146,6 @@ public class GraphLogger : MonoBehaviour
 		= new Dictionary<string, Line> ();
 	float xScale;									// Conversion factor for screen to viewport space
 	float yScale;
-	float xSize;									// Scale factor for x-axis
 	
 	void Awake ()
 	{
@@ -107,26 +187,11 @@ public class GraphLogger : MonoBehaviour
 	public void AddPoint (float point, string name)
 	{
 		int time = Time.frameCount;
-		xSize = size.x / time;
 		
 		if (!lines.ContainsKey (name))
-			lines.Add (name, new Line (time, point, size.y));
+			lines.Add (name, new Line (time, point));
 		else
-			lines [name].points.Add (time, point);
-		
-		Line line = lines [name];	
-		if (point < line.minPoint) {
-			line.minPoint = point;
-			if (line.minPoint != line.maxPoint)
-				line.ySize = size.y / (line.maxPoint - line.minPoint);
-		} else if (point > line.maxPoint) {
-			line.maxPoint = point;
-			if (line.minPoint != line.maxPoint)
-				line.ySize = size.y / (line.maxPoint - line.minPoint);
-		}
-		
-		if (line.points.Count > maxCount)
-			line.points.Remove (line.points.Keys.First ());
+			lines [name].AddFloat (time, point);
 	}
 
 	public void AddPoint (string point)
@@ -141,10 +206,7 @@ public class GraphLogger : MonoBehaviour
 		if (!lines.ContainsKey (name))
 			lines.Add (name, new Line (time, point));
 		else
-			lines [name].strings.Add (time, point);
-
-		if (lines [name].strings.Count > maxCount)
-			lines [name].strings.Remove (lines [name].strings.Keys.First ());
+			lines [name].AddString (time, point);
 	}
 	
 	// Save then quit
@@ -170,6 +232,9 @@ public class GraphLogger : MonoBehaviour
 	
 	public void SaveLog ()
 	{
+		if (lines.Count == 0)
+			return;
+
 		try {
 			using (StreamWriter file = new StreamWriter(Application.persistentDataPath + "/log.csv", appendLogFile)) {
 				if (format == Format.Column)
@@ -246,6 +311,7 @@ public class GraphLogger : MonoBehaviour
 			file.Write ("," + element.Key);
 		}
 		file.WriteLine ();
+
 		// Write data
 		foreach (KeyValuePair<int,string> element in rows) {
 			file.WriteLine (element.Key + element.Value);
@@ -269,14 +335,12 @@ public class GraphLogger : MonoBehaviour
 			Line line = element.Value;
 			if (!line.isNumber)
 				break;
-			float prevX = (line.points.Keys.First () * xSize + offset.x) * xScale;
-			float prevY = ((line.points [line.points.Keys.First ()] - line.minPoint) * line.ySize + offset.y) * yScale;
+			float prevX = line.GetX (0);
+			float prevY = line.GetY (0);
 			GL.Color (colors [i % 6]);
-			foreach (KeyValuePair<int, float> kvp in line.points) {
-				// Stretch points so that min is at offset and max is at offset+size
-				// Then convert to viewport space
-				float x = (kvp.Key * xSize + offset.x) * xScale;
-				float y = ((kvp.Value - line.minPoint) * line.ySize + offset.y) * yScale;
+			for (int j = 1; j < line.points.Count && j < maxCount; j++) {
+				float x = line.GetX (j);
+				float y = line.GetY (j);
 				GL.Vertex3 (prevX, prevY, 0);
 				GL.Vertex3 (x, y, 0);
 				prevX = x;
