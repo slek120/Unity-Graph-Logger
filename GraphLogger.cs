@@ -127,8 +127,8 @@ public class GraphLogger : MonoBehaviour
 	;
 	public bool appendLogFile = false;				// Append or overwrite log file
 	public Format format = Format.Table;			// Format for saved log file
-	public int maxCount = 6000;						// Number of points logged per property
 	public bool graphOn = true;						// Display a graph on screen
+	public int maxCount = 6000;						// Number of points logged per property
 	public Color[] colors = new Color[6] {			// Colors of lines for graph
 		Color.cyan,
 		Color.green,
