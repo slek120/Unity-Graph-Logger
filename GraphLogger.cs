@@ -119,12 +119,7 @@ public class GraphLogger : MonoBehaviour
 	public static GraphLogger graphLogger;
 	
 	// Settings
-	public enum Format
-	{
-		Column,
-		Table
-	}
-	;
+	public enum Format {Column, Table};
 	public bool appendLogFile = false;				// Append or overwrite log file
 	public Format format = Format.Table;			// Format for saved log file
 	public bool graphOn = true;						// Display a graph on screen
@@ -169,44 +164,44 @@ public class GraphLogger : MonoBehaviour
 		mat.shader.hideFlags = HideFlags.HideAndDontSave;
 	}
 
-	public void AddPoint (int point)
+	public static void AddPoint (int point)
 	{
 		AddPoint ((float)point, "default");
 	}
 
-	public void AddPoint (int point, string name)
+	public static void AddPoint (int point, string name)
 	{
 		AddPoint ((float)point, name);
 	}
 
-	public void AddPoint (float point)
+	public static void AddPoint (float point)
 	{
 		AddPoint (point, "default");
 	}
 	
-	public void AddPoint (float point, string name)
+	public static void AddPoint (float point, string name)
 	{
 		int time = Time.frameCount;
 		
-		if (!lines.ContainsKey (name))
-			lines.Add (name, new Line (time, point));
+		if (!graphLogger.lines.ContainsKey (name))
+			graphLogger.lines.Add (name, new Line (time, point));
 		else
-			lines [name].AddFloat (time, point);
+			graphLogger.lines [name].AddFloat (time, point);
 	}
 
-	public void AddPoint (string point)
+	public static void AddPoint (string point)
 	{
 		AddPoint (point, "default");
 	}
 	
-	public void AddPoint (string point, string name)
+	public static void AddPoint (string point, string name)
 	{
 		int time = Time.frameCount;
 		
-		if (!lines.ContainsKey (name))
-			lines.Add (name, new Line (time, point));
+		if (!graphLogger.lines.ContainsKey (name))
+			graphLogger.lines.Add (name, new Line (time, point));
 		else
-			lines [name].AddString (time, point);
+			graphLogger.lines [name].AddString (time, point);
 	}
 	
 	// Save then quit
@@ -230,17 +225,17 @@ public class GraphLogger : MonoBehaviour
 			SaveLog ();
 	}
 	
-	public void SaveLog ()
+	public static void SaveLog ()
 	{
-		if (lines.Count == 0)
+		if (graphLogger.lines.Count == 0)
 			return;
 
 		try {
-			using (StreamWriter file = new StreamWriter(Application.persistentDataPath + "/log.csv", appendLogFile)) {
-				if (format == Format.Column)
-					writeColumn (file);
-				else if (format == Format.Table)
-					writeTable (file);
+			using (StreamWriter file = new StreamWriter(Application.persistentDataPath + "/log.csv", graphLogger.appendLogFile)) {
+				if (graphLogger.format == Format.Column)
+					graphLogger.writeColumn (file);
+				else if (graphLogger.format == Format.Table)
+					graphLogger.writeTable (file);
 				Debug.Log ("Log file saved: " + Application.persistentDataPath + "/log.csv");
 			}
 		} catch {
